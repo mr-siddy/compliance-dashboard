@@ -5,6 +5,19 @@ import { calculateDaysToExpiry } from '../utils/dateUtils';
 
 const USE_MOCK_DATA = true; // Toggle this to switch between mock and real API
 
+// Category mapping between dropdown values and data properties
+const categoryMapping = {
+  'regulation21': 'regulation21',
+  'fitness': 'fitnessEval',
+  'firstaid': 'firstAid',
+  'saps': 'sapsCompetency',
+  'drivers': 'driversLicense',
+  'prdp': 'prdp',
+  'advanced': 'advancedDriving',
+  'psira': 'psira',
+  'uniform': 'uniform'
+};
+
 export const fetchComplianceData = async (filters = {}) => {
   if (USE_MOCK_DATA) {
     // Simulate API delay
@@ -12,22 +25,45 @@ export const fetchComplianceData = async (filters = {}) => {
 
     let filteredData = [...mockEmployees];
 
-    // Apply filters
+    // Apply department filter
     if (filters.department) {
       filteredData = filteredData.filter(
         employee => employee.department === filters.department
       );
     }
 
-    if (filters.categories?.length > 0) {
-      filteredData = filteredData.filter(employee =>
-        filters.categories.some(category => {
-          const field = category.toLowerCase().replace(/\s+/g, '');
-          return employee[field]?.daysToExpiry > 0;
-        })
-      );
+    // Apply category filter
+    if (filters.category) {
+      const dataProperty = categoryMapping[filters.category.toLowerCase()];
+      if (!dataProperty) {
+        console.warn(`No mapping found for category: ${filters.category}`);
+        return [];
+      }
+
+      filteredData = filteredData.map(employee => {
+        if (employee[dataProperty]) {
+          const filteredEmployee = {
+            ...employee,
+            // Reset all category fields to undefined first
+            regulation21: undefined,
+            fitnessEval: undefined,
+            firstAid: undefined,
+            sapsCompetency: undefined,
+            driversLicense: undefined,
+            prdp: undefined,
+            advancedDriving: undefined,
+            psira: undefined,
+            uniform: undefined,
+          };
+          // Set only the selected category
+          filteredEmployee[dataProperty] = employee[dataProperty];
+          return filteredEmployee;
+        }
+        return null;
+      }).filter(Boolean); // Remove null entries
     }
 
+    // Apply search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       filteredData = filteredData.filter(
